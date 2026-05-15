@@ -30,7 +30,13 @@ export function useDeleteRack() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: number) => fetchJson<void>(`/racks/${id}`, { method: 'DELETE' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['racks'] }),
+    onSuccess: (_r, id) => {
+      qc.invalidateQueries({ queryKey: ['racks'] });
+      qc.removeQueries({ queryKey: ['components', id] });
+      qc.removeQueries({ queryKey: ['cables', id] });
+      qc.removeQueries({ queryKey: ['vlans', id] });
+      qc.removeQueries({ queryKey: ['circuits', id] });
+    },
   });
 }
 

@@ -69,4 +69,20 @@ describe('Racks API', () => {
     const res = await request(app).post('/api/racks').send({ width: '19"', height_u: 12 });
     expect(res.status).toBe(400);
   });
+
+  it('PUT /api/racks/:id returns 404 for missing rack', async () => {
+    const res = await request(app).put('/api/racks/99999').send({ name: 'X' });
+    expect(res.status).toBe(404);
+  });
+
+  it('PUT /api/racks/:id returns 400 for invalid body', async () => {
+    const create = await request(app).post('/api/racks').send({ name: 'T', width: '19"', height_u: 6, color: '#000' });
+    const res = await request(app).put(`/api/racks/${create.body.id}`).send({ height_u: 999 });
+    expect(res.status).toBe(400);
+  });
+
+  it('DELETE /api/racks/:id returns 404 for missing rack', async () => {
+    const res = await request(app).delete('/api/racks/99999');
+    expect(res.status).toBe(404);
+  });
 });
