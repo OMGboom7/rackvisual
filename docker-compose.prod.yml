@@ -1,0 +1,21 @@
+services:
+  api:
+    build: ./api
+    expose:
+      - "3001"
+    volumes:
+      - ./data:/app/data
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DB_PATH: /app/data/rackvisual.db
+    command: node dist/index.js
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    ports:
+      - "80:80"
+    depends_on:
+      - api
