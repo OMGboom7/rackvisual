@@ -35,7 +35,7 @@ router.post('/', (req, res) => {
 });
 
 router.put('/:id', (req, res) => {
-  const existing = getDb().prepare('SELECT * FROM racks WHERE id = ?').get<Rack>(req.params.id);
+  const existing = getDb().prepare('SELECT * FROM racks WHERE id = ?').get(req.params.id) as Rack | undefined;
   if (!existing) return res.status(404).json({ error: 'Not found' });
   const parsed = RackSchema.partial().safeParse(req.body);
   if (!parsed.success) return res.status(400).json({ error: parsed.error.issues });
