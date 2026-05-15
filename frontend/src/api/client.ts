@@ -89,6 +89,26 @@ export function useModelPorts(modelId: number | null) {
   });
 }
 
+export function useUploadModel() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (formData: FormData) => {
+      const res = await fetch('/api/models/upload', { method: 'POST', body: formData });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json() as Promise<ComponentModel>;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['models'] }),
+  });
+}
+
+export function useDeleteModel() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => fetchJson<void>(`/models/${id}`, { method: 'DELETE' }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['models'] }),
+  });
+}
+
 // ---- Cables ----
 export function useCables(rackId: number | null) {
   return useQuery({
