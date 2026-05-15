@@ -107,7 +107,21 @@ router.put('/:rackId/components/:cid', (req, res) => {
   if (!parsed.success) return res.status(400).json({ error: parsed.error.issues });
   const d = parsed.data;
 
-  // Only update non-slot fields
+  // Slot move: check collision if slot_position is changing
+  const newSlot = d.slot_position ?? existing.slot_position;
+  const newHeightU = d.height_u ?? existing.height_u;
+  if (newSlot !== existing.slot_position) {
+    const occupiedSlots = (
+      getDb()
+        .prepare('SELECT slot_position, height_u FROM components WHERE rack_id = ? AND id != ?')
+        .all(req.params.rackId, req.params.cid) as any[]
+    ).flatMap((c) => Array.from({ length: c.height_u }, (_, i) => c.slot_position + i));
+    const newSlots = Array.from({ length: newHeightU }, (_, i) => newSlot + i);
+    if (newSlots.some((s) => occupiedSlots.includes(s))) {
+      return res.status(409).json({ error: 'Slot collision' });
+    }
+  }
+
   const name = d.name ?? existing.name;
   const os = 'os' in d ? (d.os ?? null) : existing.os;
   const specs = 'specs' in d ? (d.specs ?? null) : existing.specs;
@@ -130,10 +144,10 @@ router.put('/:rackId/components/:cid', (req, res) => {
 
   getDb()
     .prepare(
-      `UPDATE components SET name=?, os=?, specs=?, ip=?, vlan_id=?, circuit_id=?, color=?, tags=?, services=?
+      `UPDATE components SET slot_position=?, name=?, os=?, specs=?, ip=?, vlan_id=?, circuit_id=?, color=?, tags=?, services=?
        WHERE id=? AND rack_id=?`,
     )
-    .run(name, os, specs, ip, vlan_id, circuit_id, color, tags, services, req.params.cid, req.params.rackId);
+    .run(newSlot, name, os, specs, ip, vlan_id, circuit_id, color, tags, services, req.params.cid, req.params.rackId);
 
   const updated = getDb()
     .prepare('SELECT * FROM components WHERE id = ?')
