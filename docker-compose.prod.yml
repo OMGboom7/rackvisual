@@ -1,6 +1,8 @@
 services:
   api:
-    build: ./api
+    build:
+      context: ./api
+      dockerfile: Dockerfile.prod
     expose:
       - "3001"
     volumes:
