@@ -35,6 +35,10 @@ app.use('/api/racks', circuitsRouter);
 app.use('/api/models', modelsRouter);
 
 const PORT = Number(process.env.PORT ?? 3001);
-app.listen(PORT, () => console.log(`API running on :${PORT}`));
+
+// Only bind the port when running as the main entry point, not during tests.
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => console.log(`API running on :${PORT}`));
+}
 
 export { app };
