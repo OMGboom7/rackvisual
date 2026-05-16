@@ -15,7 +15,8 @@ export default function LibraryPanel() {
 
   const typeEmoji: Record<string, string> = {
     server: '🖥', switch: '🔀', patch_panel: '🔌', ups: '🔋',
-    pdu: '⚡', blank: '▬', kvm: '📺', custom: '📦',
+    pdu: '⚡', blank: '▬', kvm: '📺', storage: '💾',
+    firewall: '🔥', router: '🌐', custom: '📦',
   };
 
   const groups = models?.reduce((acc, m) => {

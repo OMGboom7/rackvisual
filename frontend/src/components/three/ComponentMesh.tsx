@@ -15,6 +15,9 @@ const TYPE_COLORS: Record<string, string> = {
   pdu:         '#1e0f2d',
   blank:       '#141820',
   kvm:         '#0f1f2d',
+  storage:     '#0d1f2d',
+  firewall:    '#2d1800',
+  router:      '#1a0d2d',
   custom:      '#1e2535',
 };
 
@@ -26,6 +29,9 @@ const TYPE_LED_COLORS: Record<string, string> = {
   pdu:         '#a371f7',
   blank:       '#30363d',
   kvm:         '#4dd0e1',
+  storage:     '#90cdf4',
+  firewall:    '#f6ad55',
+  router:      '#b794f4',
   custom:      '#8b949e',
 };
 
@@ -236,6 +242,153 @@ function BlankDetails({ W, H, D }: { W: number; H: number; D: number }) {
   );
 }
 
+// Inspired by Synology/NetApp NAS — dense drive bay grid on the front
+function StorageDetails({ W, H, D, heightU, bays }: { W: number; H: number; D: number; heightU: number; bays: number }) {
+  const fz = -(D / 2 - 0.0015);
+  const cols = Math.min(bays > 12 ? 12 : 6, bays);
+  const rows = heightU >= 4 ? 4 : Math.ceil(bays / cols);
+  const bayW = (W * 0.76) / cols - 0.002;
+  const bayH = (H * 0.7) / rows - 0.002;
+  return (
+    <group>
+      {/* Drive bay grid */}
+      {Array.from({ length: rows }, (_, r) =>
+        Array.from({ length: cols }, (_, c) => (
+          <group key={`${r}-${c}`} position={[
+            -(W * 0.36) + c * (bayW + 0.002) + bayW / 2,
+            H * (0.25 - r * (0.55 / Math.max(rows - 1, 1))),
+            fz,
+          ]}>
+            <mesh>
+              <boxGeometry args={[bayW, bayH, 0.001]} />
+              <meshStandardMaterial color="#060c14" metalness={0.8} roughness={0.2} />
+            </mesh>
+            {/* Latch indicator */}
+            <mesh position={[bayW / 2 - 0.003, 0, 0]}>
+              <boxGeometry args={[0.003, bayH * 0.3, 0.0008]} />
+              <meshStandardMaterial color="#0a1a28" />
+            </mesh>
+          </group>
+        ))
+      )}
+      {/* Status panel right side */}
+      <mesh position={[W * 0.41, 0, fz]}>
+        <boxGeometry args={[W * 0.1, H * 0.55, 0.001]} />
+        <meshStandardMaterial color="#04080f" />
+      </mesh>
+      {/* Activity LED column */}
+      {Array.from({ length: 4 }, (_, i) => (
+        <mesh key={i} position={[W * 0.44, H * (0.2 - i * 0.13), fz]}>
+          <boxGeometry args={[0.004, 0.004, 0.001]} />
+          <meshStandardMaterial color="#007acc" emissive="#007acc" emissiveIntensity={1.5} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+// Inspired by Fortinet/Palo Alto — status display + dense port zone + bypass pairs
+function FirewallDetails({ W, H, D, netPorts }: { W: number; H: number; D: number; netPorts: number }) {
+  const fz = -(D / 2 - 0.0015);
+  const portCount = Math.min(netPorts, 10);
+  const portW = 0.008;
+  const spacing = (W * 0.55) / portCount;
+  return (
+    <group>
+      {/* Status display */}
+      <mesh position={[-(W * 0.36), 0, fz]}>
+        <boxGeometry args={[W * 0.14, H * 0.55, 0.001]} />
+        <meshStandardMaterial color="#0d0800" emissive="#cc5500" emissiveIntensity={0.1} />
+      </mesh>
+      {/* Throughput bar */}
+      {[0.15, 0.05, -0.05, -0.15].map((yOff, i) => (
+        <mesh key={i} position={[-(W * 0.36), H * yOff, fz]}>
+          <boxGeometry args={[W * 0.1 * (1 - i * 0.15), 0.003, 0.001]} />
+          <meshStandardMaterial color={i < 2 ? '#cc5500' : '#331400'} emissive={i < 2 ? '#cc5500' : '#000'} emissiveIntensity={0.8} />
+        </mesh>
+      ))}
+      {/* Port zone background */}
+      <mesh position={[W * 0.08, 0, fz]}>
+        <boxGeometry args={[W * 0.58, H * 0.65, 0.0008]} />
+        <meshStandardMaterial color="#080400" />
+      </mesh>
+      {/* Ports — alternating 10G (orange) / 1G (amber) */}
+      {Array.from({ length: portCount }, (_, i) => (
+        <mesh key={i} position={[-(W * 0.20) + i * spacing + spacing / 2, 0, fz]}>
+          <boxGeometry args={[portW, H * 0.4, 0.001]} />
+          <meshStandardMaterial
+            color={i < portCount / 2 ? '#1a0a00' : '#0a0800'}
+            emissive={i < portCount / 2 ? '#441100' : '#220e00'}
+            emissiveIntensity={0.4}
+          />
+        </mesh>
+      ))}
+      {/* Port LEDs */}
+      {Array.from({ length: Math.min(portCount, 8) }, (_, i) => (
+        <mesh key={`l${i}`} position={[-(W * 0.20) + i * spacing + spacing / 2, -H * 0.32, fz]}>
+          <boxGeometry args={[0.003, 0.003, 0.001]} />
+          <meshStandardMaterial color="#ff6600" emissive="#ff6600" emissiveIntensity={1.2} />
+        </mesh>
+      ))}
+      {/* Console port */}
+      <mesh position={[W * 0.42, 0, fz]}>
+        <boxGeometry args={[0.012, 0.007, 0.001]} />
+        <meshStandardMaterial color="#080400" />
+      </mesh>
+    </group>
+  );
+}
+
+// Inspired by Cisco ISR / Mikrotik CCR — WAN/LAN module bays + status display
+function RouterDetails({ W, H, D }: { W: number; H: number; D: number }) {
+  const fz = -(D / 2 - 0.0015);
+  return (
+    <group>
+      {/* WAN module bay (left, purple tinted) */}
+      <mesh position={[-(W * 0.3), 0, fz]}>
+        <boxGeometry args={[W * 0.22, H * 0.65, 0.0008]} />
+        <meshStandardMaterial color="#0d0820" />
+      </mesh>
+      {Array.from({ length: 4 }, (_, i) => (
+        <mesh key={i} position={[-(W * 0.36) + i * 0.026, 0, fz]}>
+          <boxGeometry args={[0.018, H * 0.5, 0.001]} />
+          <meshStandardMaterial color="#080614" />
+        </mesh>
+      ))}
+      {/* WAN LEDs */}
+      {Array.from({ length: 4 }, (_, i) => (
+        <mesh key={`w${i}`} position={[-(W * 0.36) + i * 0.026, -H * 0.28, fz]}>
+          <boxGeometry args={[0.004, 0.004, 0.001]} />
+          <meshStandardMaterial color="#9f7aea" emissive="#9f7aea" emissiveIntensity={1.2} />
+        </mesh>
+      ))}
+      {/* Center status display */}
+      <mesh position={[-(W * 0.04), 0, fz]}>
+        <boxGeometry args={[W * 0.12, H * 0.55, 0.001]} />
+        <meshStandardMaterial color="#06040e" emissive="#200a40" emissiveIntensity={0.2} />
+      </mesh>
+      {/* LAN module bay (right, green tinted) */}
+      <mesh position={[W * 0.22, 0, fz]}>
+        <boxGeometry args={[W * 0.26, H * 0.65, 0.0008]} />
+        <meshStandardMaterial color="#050d08" />
+      </mesh>
+      {Array.from({ length: 5 }, (_, i) => (
+        <mesh key={i} position={[W * 0.09 + i * 0.022, 0, fz]}>
+          <boxGeometry args={[0.016, H * 0.5, 0.001]} />
+          <meshStandardMaterial color="#030a05" />
+        </mesh>
+      ))}
+      {/* LAN LEDs */}
+      {Array.from({ length: 5 }, (_, i) => (
+        <mesh key={`l${i}`} position={[W * 0.09 + i * 0.022, -H * 0.28, fz]}>
+          <boxGeometry args={[0.004, 0.004, 0.001]} />
+          <meshStandardMaterial color="#48bb78" emissive="#48bb78" emissiveIntensity={1.2} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
 function TypeDetails({ type, W, H, D, heightU, netPorts }: {
   type: string; W: number; H: number; D: number; heightU: number; netPorts: number;
 }) {
@@ -247,6 +400,9 @@ function TypeDetails({ type, W, H, D, heightU, netPorts }: {
     case 'pdu':         return <PduDetails W={W} H={H} D={D} />;
     case 'kvm':         return <KvmDetails W={W} H={H} D={D} />;
     case 'blank':       return <BlankDetails W={W} H={H} D={D} />;
+    case 'storage':     return <StorageDetails W={W} H={H} D={D} heightU={heightU} bays={netPorts} />;
+    case 'firewall':    return <FirewallDetails W={W} H={H} D={D} netPorts={netPorts} />;
+    case 'router':      return <RouterDetails W={W} H={H} D={D} />;
     default:            return null;
   }
 }
