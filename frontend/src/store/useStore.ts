@@ -11,12 +11,17 @@ interface Store {
   selectedComponentId: number | null;
   setSelectedComponentId: (id: number | null) => void;
 
-  // Cable mode: track first selected port
   cableSourcePort: { compId: number; port: Port } | null;
   setCableSourcePort: (v: { compId: number; port: Port } | null) => void;
 
   showFace: 'front' | 'back' | 'free';
   setShowFace: (f: 'front' | 'back' | 'free') => void;
+
+  dragComponentId: number | null;
+  setDragComponentId: (id: number | null) => void;
+
+  dragTargetSlot: number | null;
+  setDragTargetSlot: (slot: number | null) => void;
 }
 
 export const useStore = create<Store>((set) => ({
@@ -34,4 +39,10 @@ export const useStore = create<Store>((set) => ({
 
   showFace: 'free',
   setShowFace: (f) => set({ showFace: f }),
+
+  dragComponentId: null,
+  setDragComponentId: (id) => set({ dragComponentId: id }),
+
+  dragTargetSlot: null,
+  setDragTargetSlot: (slot) => set({ dragTargetSlot: slot }),
 }));
