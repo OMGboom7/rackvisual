@@ -1,11 +1,40 @@
-import { Canvas } from '@react-three/fiber';
+import { useEffect, useRef } from 'react';
+import { Canvas, useThree } from '@react-three/fiber';
 import { OrbitControls, Environment, Grid } from '@react-three/drei';
 import { Suspense } from 'react';
+import * as THREE from 'three';
 import { useStore } from '../../store/useStore';
 import { useRacks, useComponents, useCables } from '../../api/client';
 import RackChassis from './RackChassis';
 import ComponentMesh from './ComponentMesh';
 import CableSystem from './CableSystem';
+
+function CameraController() {
+  const showFace = useStore((s) => s.showFace);
+  const { camera, controls } = useThree();
+  const prevFace = useRef(showFace);
+
+  useEffect(() => {
+    if (showFace === prevFace.current) return;
+    prevFace.current = showFace;
+    if (showFace === 'free') return;
+
+    const oc = controls as any;
+    if (showFace === 'front') {
+      camera.position.set(0, 0.3, 2.8);
+    } else {
+      camera.position.set(0, 0.3, -2.8);
+    }
+    if (oc?.target) {
+      oc.target.set(0, 0.3, 0);
+      oc.update();
+    } else {
+      camera.lookAt(new THREE.Vector3(0, 0.3, 0));
+    }
+  }, [showFace, camera, controls]);
+
+  return null;
+}
 
 export default function Scene() {
   const selectedRackId = useStore((s) => s.selectedRackId);
@@ -55,6 +84,7 @@ export default function Scene() {
       </Suspense>
 
       <OrbitControls makeDefault enableDamping dampingFactor={0.05} />
+      <CameraController />
     </Canvas>
   );
 }

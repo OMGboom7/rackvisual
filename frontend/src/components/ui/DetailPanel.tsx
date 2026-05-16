@@ -4,9 +4,11 @@ import {
   useComponents, useUpdateComponent, useDeleteComponent,
   useVlans, useCircuits, useModelPorts, useCables,
 } from '../../api/client';
-import type { RackComponent } from '../../types';
+import type { RackComponent, Hardware, StorageEntry } from '../../types';
 
-type Tab = 'info' | 'ports';
+type Tab = 'info' | 'hardware' | 'ports';
+
+const emptyHardware = (): Hardware => ({ cpu: '', ram: '', gpu: '', storage: [] });
 
 export default function DetailPanel() {
   const { selectedRackId, selectedComponentId, setSelectedComponentId, mode } = useStore();
@@ -18,6 +20,7 @@ export default function DetailPanel() {
   const deleteComponent = useDeleteComponent();
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<Partial<RackComponent>>({});
+  const [hwForm, setHwForm] = useState<Hardware>(emptyHardware());
   const [tab, setTab] = useState<Tab>('info');
   const [moveSlot, setMoveSlot] = useState('');
   const [moveError, setMoveError] = useState('');
@@ -27,11 +30,21 @@ export default function DetailPanel() {
 
   if (!comp || !selectedRackId) return null;
 
-  const startEdit = () => { setForm({ ...comp }); setEditing(true); };
+  const startEdit = () => {
+    setForm({ ...comp });
+    setHwForm(comp.hardware ? { ...comp.hardware, storage: [...(comp.hardware.storage ?? [])] } : emptyHardware());
+    setEditing(true);
+  };
+
   const save = () => {
-    updateComponent.mutate({ rackId: selectedRackId, compId: comp.id, data: form });
+    updateComponent.mutate({
+      rackId: selectedRackId,
+      compId: comp.id,
+      data: { ...form, hardware: hwForm },
+    });
     setEditing(false);
   };
+
   const remove = () => {
     deleteComponent.mutate({ rackId: selectedRackId, compId: comp.id });
     setSelectedComponentId(null);
@@ -52,8 +65,27 @@ export default function DetailPanel() {
     cables?.flatMap((c) => [c.from_port_id, c.to_port_id]) ?? []
   );
 
+  const addStorage = () =>
+    setHwForm((h) => ({ ...h, storage: [...h.storage, { label: '', size: '' }] }));
+
+  const updateStorage = (i: number, field: keyof StorageEntry, val: string) =>
+    setHwForm((h) => {
+      const s = [...h.storage];
+      s[i] = { ...s[i], [field]: val };
+      return { ...h, storage: s };
+    });
+
+  const removeStorage = (i: number) =>
+    setHwForm((h) => ({ ...h, storage: h.storage.filter((_, idx) => idx !== i) }));
+
+  const tabs: { key: Tab; label: string }[] = [
+    { key: 'info', label: 'Info' },
+    { key: 'hardware', label: 'Hardware' },
+    { key: 'ports', label: `Ports (${ports?.length ?? 0})` },
+  ];
+
   return (
-    <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-56 bg-rack-surface/90 backdrop-blur border border-blue-600/60 rounded-lg p-3 text-xs">
+    <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-60 bg-rack-surface/90 backdrop-blur border border-blue-600/60 rounded-lg p-3 text-xs">
       {/* Header */}
       <div className="flex items-center justify-between mb-2 border-b border-rack-border pb-1.5">
         <span className="text-blue-300 font-medium truncate">{comp.name}</span>
@@ -63,7 +95,7 @@ export default function DetailPanel() {
       {/* Move-Modus Banner */}
       {mode === 'move' && (
         <div className="mb-2 bg-yellow-900/40 border border-yellow-600/40 rounded p-2">
-          <div className="text-yellow-300 mb-1">✥ Slot verschieben (aktuell: {comp.slot_position})</div>
+          <div className="text-yellow-300 mb-1">✥ Verschieben (aktuell: Slot {comp.slot_position})</div>
           <div className="flex gap-1">
             <input
               type="number" min={1} value={moveSlot}
@@ -79,29 +111,30 @@ export default function DetailPanel() {
 
       {/* Tabs */}
       <div className="flex gap-1 mb-2">
-        {(['info', 'ports'] as Tab[]).map((t) => (
+        {tabs.map((t) => (
           <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`flex-1 py-0.5 rounded text-xs capitalize transition-colors ${
-              tab === t ? 'bg-blue-900/60 text-blue-300 border border-blue-600' : 'text-rack-muted hover:text-rack-text'
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`flex-1 py-0.5 rounded text-xs transition-colors ${
+              tab === t.key ? 'bg-blue-900/60 text-blue-300 border border-blue-600' : 'text-rack-muted hover:text-rack-text'
             }`}
           >
-            {t === 'info' ? 'Info' : `Ports (${ports?.length ?? 0})`}
+            {t.label}
           </button>
         ))}
       </div>
 
-      {/* Info Tab */}
+      {/* ── Info Tab ── */}
       {tab === 'info' && (
         editing ? (
           <div className="flex flex-col gap-1.5">
             {[
-              { key: 'name', label: 'Name' }, { key: 'os', label: 'OS' },
-              { key: 'specs', label: 'Specs' }, { key: 'ip', label: 'IP' },
+              { key: 'name', label: 'Name' },
+              { key: 'os', label: 'OS' },
+              { key: 'ip', label: 'IP' },
             ].map(({ key, label }) => (
               <div key={key} className="flex items-center gap-1">
-                <span className="text-rack-muted w-12 shrink-0">{label}:</span>
+                <span className="text-rack-muted w-10 shrink-0">{label}:</span>
                 <input
                   value={(form as any)[key] ?? ''}
                   onChange={(e) => setForm({ ...form, [key]: e.target.value })}
@@ -110,7 +143,7 @@ export default function DetailPanel() {
               </div>
             ))}
             <div className="flex items-center gap-1">
-              <span className="text-rack-muted w-12 shrink-0">VLAN:</span>
+              <span className="text-rack-muted w-10 shrink-0">VLAN:</span>
               <select
                 value={form.vlan_id ?? ''}
                 onChange={(e) => setForm({ ...form, vlan_id: e.target.value ? Number(e.target.value) : null })}
@@ -121,7 +154,7 @@ export default function DetailPanel() {
               </select>
             </div>
             <div className="flex items-center gap-1">
-              <span className="text-rack-muted w-12 shrink-0">Strom:</span>
+              <span className="text-rack-muted w-10 shrink-0">Strom:</span>
               <select
                 value={form.circuit_id ?? ''}
                 onChange={(e) => setForm({ ...form, circuit_id: e.target.value ? Number(e.target.value) : null })}
@@ -141,13 +174,12 @@ export default function DetailPanel() {
             {[
               { label: 'Slot', val: String(comp.slot_position) },
               { label: 'OS', val: comp.os },
-              { label: 'Specs', val: comp.specs },
               { label: 'IP', val: comp.ip },
               { label: 'VLAN', val: vlans?.find((v) => v.id === comp.vlan_id)?.name },
               { label: 'Strom', val: circuits?.find((c) => c.id === comp.circuit_id)?.name },
             ].filter((f) => f.val).map(({ label, val }) => (
               <div key={label} className="flex gap-1">
-                <span className="text-rack-muted w-12 shrink-0">{label}:</span>
+                <span className="text-rack-muted w-10 shrink-0">{label}:</span>
                 <span className="text-rack-text">{val}</span>
               </div>
             ))}
@@ -170,7 +202,85 @@ export default function DetailPanel() {
         )
       )}
 
-      {/* Ports Tab */}
+      {/* ── Hardware Tab ── */}
+      {tab === 'hardware' && (
+        editing ? (
+          <div className="flex flex-col gap-1.5">
+            {([['cpu', 'CPU'], ['ram', 'RAM'], ['gpu', 'GPU']] as const).map(([key, label]) => (
+              <div key={key} className="flex items-center gap-1">
+                <span className="text-rack-muted w-8 shrink-0">{label}:</span>
+                <input
+                  value={hwForm[key] ?? ''}
+                  onChange={(e) => setHwForm((h) => ({ ...h, [key]: e.target.value }))}
+                  placeholder={key === 'cpu' ? 'z.B. Intel Xeon E5' : key === 'ram' ? 'z.B. 64 GB DDR4' : 'z.B. Quadro P400'}
+                  className="flex-1 bg-rack-bg border border-rack-border rounded px-1.5 py-0.5 text-rack-text"
+                />
+              </div>
+            ))}
+            {/* Storage entries */}
+            <div className="border-t border-rack-border pt-1.5 mt-0.5">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-rack-muted">Speicher</span>
+                <button onClick={addStorage} className="text-blue-400 hover:text-blue-300 text-xs">+ Add</button>
+              </div>
+              {hwForm.storage.map((s, i) => (
+                <div key={i} className="flex gap-1 mb-1">
+                  <input
+                    value={s.size}
+                    onChange={(e) => updateStorage(i, 'size', e.target.value)}
+                    placeholder="2 TB"
+                    className="w-14 bg-rack-bg border border-rack-border rounded px-1.5 py-0.5 text-rack-text"
+                  />
+                  <input
+                    value={s.label}
+                    onChange={(e) => updateStorage(i, 'label', e.target.value)}
+                    placeholder="SSD / HDD / NVMe"
+                    className="flex-1 bg-rack-bg border border-rack-border rounded px-1.5 py-0.5 text-rack-text"
+                  />
+                  <button onClick={() => removeStorage(i)} className="text-red-400 hover:text-red-300 px-1">✕</button>
+                </div>
+              ))}
+              {hwForm.storage.length === 0 && (
+                <div className="text-rack-muted text-center py-1">Kein Speicher eingetragen</div>
+              )}
+            </div>
+            <div className="flex gap-1 mt-1">
+              <button onClick={save} className="flex-1 bg-green-800 hover:bg-green-700 rounded px-2 py-1 text-green-200">Speichern</button>
+              <button onClick={() => setEditing(false)} className="flex-1 bg-rack-bg hover:bg-rack-border rounded px-2 py-1 text-rack-muted">Abbruch</button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-1">
+            {[
+              { label: 'CPU', val: comp.hardware?.cpu },
+              { label: 'RAM', val: comp.hardware?.ram },
+              { label: 'GPU', val: comp.hardware?.gpu },
+            ].filter((f) => f.val).map(({ label, val }) => (
+              <div key={label} className="flex gap-1">
+                <span className="text-rack-muted w-8 shrink-0">{label}:</span>
+                <span className="text-rack-text">{val}</span>
+              </div>
+            ))}
+            {comp.hardware?.storage && comp.hardware.storage.length > 0 && (
+              <div className="mt-1 border-t border-rack-border pt-1">
+                <div className="text-rack-muted mb-0.5">Speicher:</div>
+                {comp.hardware.storage.map((s, i) => (
+                  <div key={i} className="flex gap-1.5 text-rack-text">
+                    <span className="text-blue-400 shrink-0">{s.size}</span>
+                    <span>{s.label}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {!comp.hardware?.cpu && !comp.hardware?.ram && !comp.hardware?.gpu && !comp.hardware?.storage?.length && (
+              <div className="text-rack-muted text-center py-2">Keine Hardware-Daten</div>
+            )}
+            <button onClick={startEdit} className="mt-2 bg-green-900/50 hover:bg-green-800/60 border border-green-700/40 rounded px-2 py-1 text-green-300">✏ Bearbeiten</button>
+          </div>
+        )
+      )}
+
+      {/* ── Ports Tab ── */}
       {tab === 'ports' && (
         <div className="flex flex-col gap-1 max-h-64 overflow-y-auto">
           {!ports || ports.length === 0 ? (

@@ -22,6 +22,15 @@ const ComponentSchema = z.object({
       containers: z.array(z.string()).default([]),
     })
     .default({ vms: [], containers: [] }),
+  hardware: z
+    .object({
+      cpu: z.string().optional().nullable(),
+      ram: z.string().optional().nullable(),
+      gpu: z.string().optional().nullable(),
+      storage: z.array(z.object({ label: z.string(), size: z.string() })).default([]),
+    })
+    .optional()
+    .nullable(),
 });
 
 function parseComponent(c: any) {
@@ -29,6 +38,7 @@ function parseComponent(c: any) {
     ...c,
     tags: typeof c.tags === 'string' ? JSON.parse(c.tags) : c.tags,
     services: typeof c.services === 'string' ? JSON.parse(c.services) : c.services,
+    hardware: typeof c.hardware === 'string' ? JSON.parse(c.hardware) : (c.hardware ?? null),
   };
 }
 
@@ -71,8 +81,8 @@ router.post('/:rackId/components', (req, res) => {
   const result = getDb()
     .prepare(
       `INSERT INTO components
-        (rack_id, model_id, slot_position, height_u, name, os, specs, ip, vlan_id, circuit_id, color, tags, services)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        (rack_id, model_id, slot_position, height_u, name, os, specs, ip, vlan_id, circuit_id, color, tags, services, hardware)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .run(
       req.params.rackId,
@@ -88,6 +98,7 @@ router.post('/:rackId/components', (req, res) => {
       d.color ?? null,
       JSON.stringify(d.tags),
       JSON.stringify(d.services),
+      d.hardware ? JSON.stringify(d.hardware) : null,
     );
 
   const component = getDb()
@@ -141,13 +152,19 @@ router.put('/:rackId/components/:cid', (req, res) => {
       : typeof existing.services === 'string'
         ? existing.services
         : JSON.stringify(existing.services);
+  const hardware =
+    'hardware' in d
+      ? (d.hardware ? JSON.stringify(d.hardware) : null)
+      : typeof existing.hardware === 'string'
+        ? existing.hardware
+        : existing.hardware ? JSON.stringify(existing.hardware) : null;
 
   getDb()
     .prepare(
-      `UPDATE components SET slot_position=?, name=?, os=?, specs=?, ip=?, vlan_id=?, circuit_id=?, color=?, tags=?, services=?
+      `UPDATE components SET slot_position=?, name=?, os=?, specs=?, ip=?, vlan_id=?, circuit_id=?, color=?, tags=?, services=?, hardware=?
        WHERE id=? AND rack_id=?`,
     )
-    .run(newSlot, name, os, specs, ip, vlan_id, circuit_id, color, tags, services, req.params.cid, req.params.rackId);
+    .run(newSlot, name, os, specs, ip, vlan_id, circuit_id, color, tags, services, hardware, req.params.cid, req.params.rackId);
 
   const updated = getDb()
     .prepare('SELECT * FROM components WHERE id = ?')

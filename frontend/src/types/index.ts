@@ -30,6 +30,18 @@ export interface Port {
   position_y: number;
 }
 
+export interface StorageEntry {
+  label: string;
+  size: string;
+}
+
+export interface Hardware {
+  cpu?: string | null;
+  ram?: string | null;
+  gpu?: string | null;
+  storage: StorageEntry[];
+}
+
 export interface RackComponent {
   id: number;
   rack_id: number;
@@ -45,6 +57,7 @@ export interface RackComponent {
   color: string | null;
   tags: string[];
   services: { vms: string[]; containers: string[] };
+  hardware: Hardware | null;
 }
 
 export interface Cable {

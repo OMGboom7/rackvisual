@@ -81,4 +81,7 @@ export function migrate() {
       label TEXT
     );
   `);
+
+  // Safe column additions (ignored if already exist)
+  try { db.exec('ALTER TABLE components ADD COLUMN hardware TEXT'); } catch {}
 }
