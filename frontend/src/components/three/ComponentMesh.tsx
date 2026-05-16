@@ -1,4 +1,4 @@
-import { useState, Suspense } from 'react';
+import { useState, useMemo, Suspense, Component, ReactNode } from 'react';
 import { useLoader } from '@react-three/fiber';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import * as THREE from 'three';
@@ -6,6 +6,12 @@ import type { Rack, RackComponent } from '../../types';
 import { U_HEIGHT, RACK_DEPTH, slotY, getRackWidth, POST_SIZE } from '../../lib/rack-geometry';
 import { useStore } from '../../store/useStore';
 import { useModels } from '../../api/client';
+
+class GltfErrorBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { error: boolean }> {
+  state = { error: false };
+  static getDerivedStateFromError() { return { error: true }; }
+  render() { return this.state.error ? this.props.fallback : this.props.children; }
+}
 
 const TYPE_COLORS: Record<string, string> = {
   server:      '#0f2240',
@@ -415,11 +421,14 @@ function ProceduralComponent({ component, rack, model }: Props & { model: any })
   const setSelectedComponentId = useStore((s) => s.setSelectedComponentId);
   const mode = useStore((s) => s.mode);
 
+  const dragComponentId = useStore((s) => s.dragComponentId);
+  const setDragComponentId = useStore((s) => s.setDragComponentId);
+  const isDragging = dragComponentId === component.id;
   const isSelected = selectedComponentId === component.id;
   const W = getRackWidth(rack.width) - POST_SIZE * 2 - 0.002;
   const H = component.height_u * U_HEIGHT - 0.003;
   const D = RACK_DEPTH - 0.06;
-  const y = slotY(component.slot_position, rack.height_u);
+  const y = slotY(component.slot_position, rack.height_u, component.height_u);
 
   const type = model?.type ?? 'custom';
   const baseColor = component.color ?? TYPE_COLORS[type] ?? '#1e2535';
@@ -431,12 +440,19 @@ function ProceduralComponent({ component, rack, model }: Props & { model: any })
     if (mode === 'delete') useStore.getState().setSelectedComponentId(component.id);
   };
 
+  const handlePointerDown = (e: any) => {
+    if (mode !== 'move') return;
+    e.stopPropagation();
+    setDragComponentId(component.id);
+  };
+
   return (
     <group position={[0, y, 0]}>
       {/* Main chassis */}
       <mesh
         castShadow receiveShadow
         onClick={handleClick}
+        onPointerDown={handlePointerDown}
         onPointerOver={(e) => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer'; }}
         onPointerOut={() => { setHovered(false); document.body.style.cursor = 'default'; }}
       >
@@ -445,8 +461,8 @@ function ProceduralComponent({ component, rack, model }: Props & { model: any })
           color={baseColor}
           metalness={0.65}
           roughness={0.35}
-          emissive={isSelected ? '#3366cc' : hovered ? ledColor : '#000000'}
-          emissiveIntensity={isSelected ? 0.35 : hovered ? 0.12 : 0}
+          emissive={isSelected ? '#3366cc' : isDragging ? '#cc8800' : hovered ? ledColor : '#000000'}
+          emissiveIntensity={isSelected ? 0.35 : isDragging ? 0.6 : hovered ? 0.12 : 0}
         />
       </mesh>
 
@@ -486,17 +502,135 @@ function ProceduralComponent({ component, rack, model }: Props & { model: any })
 
 // ─── GLTF component ───────────────────────────────────────────────────────────
 
-function GltfComponent({ component, rack, filePath }: Props & { filePath: string }) {
-  const gltf = useLoader(GLTFLoader, `/api/models/file/${filePath}`);
+function GltfComponent({ component, rack, modelId }: Props & { modelId: number }) {
+  const gltf = useLoader(GLTFLoader, `/api/models/${modelId}/file`);
+  const [hovered, setHovered] = useState(false);
+  const selectedComponentId = useStore((s) => s.selectedComponentId);
+  const setSelectedComponentId = useStore((s) => s.setSelectedComponentId);
+  const mode = useStore((s) => s.mode);
+  const { data: models } = useModels();
+  const model = models?.find((m) => m.id === component.model_id);
+
+  const dragComponentId = useStore((s) => s.dragComponentId);
+  const setDragComponentId = useStore((s) => s.setDragComponentId);
+  const isDragging = dragComponentId === component.id;
   const W = getRackWidth(rack.width) - POST_SIZE * 2 - 0.002;
   const H = component.height_u * U_HEIGHT - 0.003;
-  const y = slotY(component.slot_position, rack.height_u);
-  const box = new THREE.Box3().setFromObject(gltf.scene);
-  const size = box.getSize(new THREE.Vector3());
-  const scale = Math.min(W / size.x, H / size.y, (RACK_DEPTH - 0.06) / size.z);
+  const D = RACK_DEPTH - 0.06;
+  const y = slotY(component.slot_position, rack.height_u, component.height_u);
+  const isSelected = selectedComponentId === component.id;
+  const type = model?.type ?? 'custom';
+  const ledColor = TYPE_LED_COLORS[type] ?? '#63b3ed';
+
+  const mountFace: 'front' | 'back' = (() => {
+    try { return (JSON.parse(component.specs ?? '{}').face ?? 'front'); } catch { return 'front'; }
+  })();
+
+  const { clonedScene, scale, offset, rotY } = useMemo(() => {
+    const clone = gltf.scene.clone();
+
+    // Some GLB files have detail nodes (buttons, screws, caps) exported with scale [1,1,1]
+    // on unit-cube geometry, producing ~1m³ bounding boxes that break the overall bbox.
+    // Real rack equipment maxes out at 0.482m wide × 0.267m tall × 0.9m deep, so any
+    // mesh with ALL three dimensions >= 0.99m must be a broken unit-cube node.
+    const box = new THREE.Box3();
+    const tmp = new THREE.Vector3();
+    clone.traverse((node) => {
+      if (!(node instanceof THREE.Mesh)) return;
+      const meshBox = new THREE.Box3().setFromObject(node);
+      meshBox.getSize(tmp);
+      if (tmp.x >= 0.99 && tmp.y >= 0.99 && tmp.z >= 0.99) {
+        node.visible = false;
+        return;
+      }
+      box.union(meshBox);
+    });
+    if (box.isEmpty()) box.setFromObject(clone);
+
+    // Normalise: shift the clone so its front face (max Z) sits at Z=0 in model space.
+    // This makes offset.z = targetZ regardless of GLB coordinate origin — all models
+    // align to the same rack face without depending on how Blender exported the origin.
+    clone.position.z = -box.max.z;
+
+    const center = box.getCenter(new THREE.Vector3());
+    const size = box.getSize(new THREE.Vector3());
+    const sx = size.x > 0.0001 ? size.x : 1;
+    const sy = size.y > 0.0001 ? size.y : 1;
+    const s = Math.min(W / sx, H / sy);
+    const targetZ = mountFace === 'back' ? D / 2 : -D / 2;
+
+    // Front-mounted: rotate 180° so ports (originally at +Z) face outward toward viewer.
+    // With front face normalised to Z=0, the 180° Y rotation leaves it at Z=0,
+    // so offset.z = targetZ for both mount faces.
+    const isFront = mountFace === 'front';
+    return {
+      clonedScene: clone,
+      scale: s,
+      offset: new THREE.Vector3(
+        isFront ? center.x * s : -center.x * s,
+        -center.y * s,
+        targetZ,
+      ),
+      rotY: isFront ? Math.PI : 0,
+    };
+  }, [gltf.scene, W, H, D, mountFace]);
+
+  const handleClick = (e: any) => {
+    e.stopPropagation();
+    if (mode === 'select') setSelectedComponentId(isSelected ? null : component.id);
+    if (mode === 'delete') useStore.getState().setSelectedComponentId(component.id);
+  };
+
+  const handlePointerDown = (e: any) => {
+    if (mode !== 'move') return;
+    e.stopPropagation();
+    setDragComponentId(component.id);
+  };
+
   return (
-    <group position={[0, y, 0]} scale={scale}>
-      <primitive object={gltf.scene.clone()} />
+    <group position={[0, y, 0]}>
+      {/* Invisible hitbox — provides consistent click/hover surface */}
+      <mesh
+        visible={false}
+        onClick={handleClick}
+        onPointerDown={handlePointerDown}
+        onPointerOver={(e: any) => { e.stopPropagation(); setHovered(true); document.body.style.cursor = 'pointer'; }}
+        onPointerOut={() => { setHovered(false); document.body.style.cursor = 'default'; }}
+      >
+        <boxGeometry args={[W, H, D]} />
+        <meshBasicMaterial />
+      </mesh>
+
+      {/* GLTF model scaled and centered within the slot */}
+      <group scale={scale} position={[offset.x, offset.y, offset.z]}>
+        <group rotation={[0, rotY, 0]}>
+          <primitive object={clonedScene} />
+        </group>
+      </group>
+
+      {/* Hover highlight */}
+      {hovered && !isSelected && (
+        <mesh>
+          <boxGeometry args={[W, H, D]} />
+          <meshStandardMaterial color={ledColor} transparent opacity={0.08} />
+        </mesh>
+      )}
+
+      {/* Orange glow when being dragged */}
+      {isDragging && (
+        <mesh>
+          <boxGeometry args={[W, H, D]} />
+          <meshStandardMaterial color="#cc8800" transparent opacity={0.18} />
+        </mesh>
+      )}
+
+      {/* Selection wireframe */}
+      {isSelected && (
+        <mesh>
+          <boxGeometry args={[W + 0.004, H + 0.004, D + 0.004]} />
+          <meshStandardMaterial color="#4488ff" wireframe />
+        </mesh>
+      )}
     </group>
   );
 }
@@ -507,10 +641,13 @@ export default function ComponentMesh({ component, rack }: Props) {
   const { data: models } = useModels();
   const model = models?.find((m) => m.id === component.model_id);
   if (model?.file_path) {
+    const procedural = <ProceduralComponent component={component} rack={rack} model={model} />;
     return (
-      <Suspense fallback={<ProceduralComponent component={component} rack={rack} model={model} />}>
-        <GltfComponent component={component} rack={rack} filePath={model.file_path} />
-      </Suspense>
+      <GltfErrorBoundary fallback={procedural}>
+        <Suspense fallback={procedural}>
+          <GltfComponent component={component} rack={rack} modelId={model.id} />
+        </Suspense>
+      </GltfErrorBoundary>
     );
   }
   return <ProceduralComponent component={component} rack={rack} model={model} />;
