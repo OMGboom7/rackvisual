@@ -29,7 +29,7 @@ export const useStore = create<Store>((set) => ({
   setSelectedRackId: (id) => set({ selectedRackId: id, selectedComponentId: null }),
 
   mode: 'select',
-  setMode: (mode) => set({ mode, cableSourcePort: null }),
+  setMode: (mode) => set({ mode, cableSourcePort: null, dragComponentId: null, dragTargetSlot: null }),
 
   selectedComponentId: null,
   setSelectedComponentId: (id) => set({ selectedComponentId: id }),
