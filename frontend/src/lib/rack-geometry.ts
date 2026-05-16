@@ -15,11 +15,11 @@ export function getRackHeight(heightU: number) {
   return heightU * U_HEIGHT + 0.1;
 }
 
-// Compute Y center position of a slot within the rack interior
-// Slot 1 = topmost slot
-export function slotY(slot: number, totalU: number): number {
+// Compute Y center position of a component within the rack interior
+// Slot 1 = topmost slot; heightU accounts for multi-U components
+export function slotY(slot: number, totalU: number, heightU = 1): number {
   const interiorHeight = totalU * U_HEIGHT;
-  return (interiorHeight / 2) - (slot - 1) * U_HEIGHT - U_HEIGHT / 2;
+  return (interiorHeight / 2) - (slot - 1) * U_HEIGHT - (heightU * U_HEIGHT) / 2;
 }
 
 // Build a rack chassis as a THREE.Group (posts + rails + mounting strips)
@@ -60,20 +60,18 @@ export function buildRackChassis(width: '10"' | '19"', heightU: number): THREE.G
     addBox(railD, railH, D, xOff, y, 0, metalMat);
   });
 
-  // Slot strips (front face, alternating shade per U)
-  const stripW = 0.018;
-  const interiorH = heightU * U_HEIGHT;
-  for (let u = 0; u < heightU; u++) {
-    const y = interiorH / 2 - (u + 0.5) * U_HEIGHT;
-    const slotColor = u % 2 === 0 ? 0x1e2535 : 0x222a38;
-    const slotMat = new THREE.MeshStandardMaterial({ color: slotColor, metalness: 0.3, roughness: 0.7 });
-    addBox(W - P * 2, U_HEIGHT - 0.002, 0.002, 0, y, -D / 2 + P / 2, slotMat);
-    addBox(stripW, U_HEIGHT - 0.004, 0.004, -(W / 2 - P - stripW / 2), y, -D / 2 + P / 2, railMat);
-    addBox(stripW, U_HEIGHT - 0.004, 0.004, (W / 2 - P - stripW / 2), y, -D / 2 + P / 2, railMat);
-  }
-
   // Back cable management bar
   addBox(W - P * 2, 0.04, 0.03, 0, 0, D / 2 - P / 2 - 0.015, darkMat);
 
   return group;
+}
+
+// Inverse of slotY for 1U: maps world-space Y → 1-indexed slot number (1 = top).
+// Returns the slot where the TOP of a heightU-tall component should land.
+// Clamps so the component stays within the rack (slot + heightU - 1 <= totalU).
+export function worldYToSlot(worldY: number, totalU: number, heightU = 1): number {
+  const interiorHeight = totalU * U_HEIGHT;
+  const fromTop = interiorHeight / 2 - worldY;
+  const slot = Math.floor(fromTop / U_HEIGHT) + 1;
+  return Math.max(1, Math.min(slot, totalU - heightU + 1));
 }
