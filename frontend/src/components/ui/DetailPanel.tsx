@@ -22,8 +22,6 @@ export default function DetailPanel() {
   const [form, setForm] = useState<Partial<RackComponent>>({});
   const [hwForm, setHwForm] = useState<Hardware>(emptyHardware());
   const [tab, setTab] = useState<Tab>('info');
-  const [moveSlot, setMoveSlot] = useState('');
-  const [moveError, setMoveError] = useState('');
 
   const comp = components?.find((c) => c.id === selectedComponentId);
   const { data: ports } = useModelPorts(comp?.model_id ?? null);
@@ -48,17 +46,6 @@ export default function DetailPanel() {
   const remove = () => {
     deleteComponent.mutate({ rackId: selectedRackId, compId: comp.id });
     setSelectedComponentId(null);
-  };
-
-  const handleMove = () => {
-    const slot = parseInt(moveSlot, 10);
-    if (isNaN(slot) || slot < 1) { setMoveError('Ungültige Slot-Nummer'); return; }
-    setMoveError('');
-    updateComponent.mutate(
-      { rackId: selectedRackId, compId: comp.id, data: { slot_position: slot } },
-      { onError: () => setMoveError('Slot belegt oder ungültig') },
-    );
-    setMoveSlot('');
   };
 
   const occupiedPortIds = new Set(
@@ -89,25 +76,11 @@ export default function DetailPanel() {
       {/* Header */}
       <div className="flex items-center justify-between mb-2 border-b border-rack-border pb-1.5">
         <span className="text-blue-300 font-medium truncate">{comp.name}</span>
-        <button onClick={() => setSelectedComponentId(null)} className="text-rack-muted hover:text-rack-text ml-2">✕</button>
+        {mode === 'move' && (
+          <span className="text-yellow-400 text-xs" title="In 3D-Ansicht ziehen um zu verschieben">↕</span>
+        )}
+        <button onClick={() => setSelectedComponentId(null)} className="text-rack-muted hover:text-rack-text ml-2">×</button>
       </div>
-
-      {/* Move-Modus Banner */}
-      {mode === 'move' && (
-        <div className="mb-2 bg-yellow-900/40 border border-yellow-600/40 rounded p-2">
-          <div className="text-yellow-300 mb-1">✥ Verschieben (aktuell: Slot {comp.slot_position})</div>
-          <div className="flex gap-1">
-            <input
-              type="number" min={1} value={moveSlot}
-              onChange={(e) => setMoveSlot(e.target.value)}
-              placeholder="Neuer Slot"
-              className="flex-1 bg-rack-bg border border-rack-border rounded px-1.5 py-0.5 text-rack-text"
-            />
-            <button onClick={handleMove} className="bg-yellow-700 hover:bg-yellow-600 rounded px-2 py-0.5 text-yellow-100">→</button>
-          </div>
-          {moveError && <div className="text-red-400 mt-1">{moveError}</div>}
-        </div>
-      )}
 
       {/* Tabs */}
       <div className="flex gap-1 mb-2">
@@ -191,12 +164,12 @@ export default function DetailPanel() {
             {(comp.services.vms.length > 0 || comp.services.containers.length > 0) && (
               <div className="mt-1 border-t border-rack-border pt-1">
                 {comp.services.vms.map((v) => <div key={v} className="text-purple-400">● VM: {v}</div>)}
-                {comp.services.containers.map((c) => <div key={c} className="text-green-400">🐳 {c}</div>)}
+                {comp.services.containers.map((c) => <div key={c} className="text-green-400">Container: {c}</div>)}
               </div>
             )}
             <div className="flex gap-1 mt-2">
-              <button onClick={startEdit} className="flex-1 bg-green-900/50 hover:bg-green-800/60 border border-green-700/40 rounded px-2 py-1 text-green-300">✏ Edit</button>
-              <button onClick={remove} className="bg-red-900/50 hover:bg-red-800/60 border border-red-700/40 rounded px-2 py-1 text-red-300">🗑</button>
+              <button onClick={startEdit} className="flex-1 bg-green-900/50 hover:bg-green-800/60 border border-green-700/40 rounded px-2 py-1 text-green-300">Edit</button>
+              <button onClick={remove} className="bg-red-900/50 hover:bg-red-800/60 border border-red-700/40 rounded px-2 py-1 text-red-300">Del</button>
             </div>
           </div>
         )
@@ -237,7 +210,7 @@ export default function DetailPanel() {
                     placeholder="SSD / HDD / NVMe"
                     className="flex-1 bg-rack-bg border border-rack-border rounded px-1.5 py-0.5 text-rack-text"
                   />
-                  <button onClick={() => removeStorage(i)} className="text-red-400 hover:text-red-300 px-1">✕</button>
+                  <button onClick={() => removeStorage(i)} className="text-red-400 hover:text-red-300 px-1">×</button>
                 </div>
               ))}
               {hwForm.storage.length === 0 && (
@@ -275,7 +248,7 @@ export default function DetailPanel() {
             {!comp.hardware?.cpu && !comp.hardware?.ram && !comp.hardware?.gpu && !comp.hardware?.storage?.length && (
               <div className="text-rack-muted text-center py-2">Keine Hardware-Daten</div>
             )}
-            <button onClick={startEdit} className="mt-2 bg-green-900/50 hover:bg-green-800/60 border border-green-700/40 rounded px-2 py-1 text-green-300">✏ Bearbeiten</button>
+            <button onClick={startEdit} className="mt-2 bg-green-900/50 hover:bg-green-800/60 border border-green-700/40 rounded px-2 py-1 text-green-300">Bearbeiten</button>
           </div>
         )
       )}
