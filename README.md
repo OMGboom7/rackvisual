@@ -1,48 +1,48 @@
 # RackVisual
 
-**Interaktive 3D-Visualisierung für Homelab- und Datacenter-Racks**
+**Interactive 3D visualization for homelab and datacenter racks**
 
-RackVisual ist eine lokal gehostete Web-App, mit der du Serverracks in einer interaktiven 3D-Umgebung planen, befüllen und verwalten kannst. Keine Cloud, keine Registrierung – alles läuft per Docker auf deiner eigenen Hardware.
+RackVisual is a self-hosted web app for planning, populating, and managing server racks in an interactive 3D environment. No cloud, no account — everything runs via Docker on your own hardware.
 
 ---
 
 ## Features
 
-- **3D-Rack-Visualisierung** – Realistisches Rendering mit React Three Fiber / Three.js
-- **Mehrere Racks** – Verwalte beliebig viele Rack-Projekte (z. B. "Keller", "Büro")
-- **Komponenten-Bibliothek** – Vordefinierte Modelle für Server, Switches, Patchpanel, USV, PDU, KVM und Blanks; eigene GLTF/GLB-Modelle hochladbar
-- **Drag & Drop** – Komponenten direkt in der 3D-Ansicht per Drag in einen freien Slot verschieben
-- **Kollisionserkennung** – Belegte Slots werden automatisch erkannt und gesperrt
-- **Kabelmanagement** – Port-zu-Port-Verbindungen mit Netz- und Stromkabeln
-- **Komponentendetails** – OS, IP-Adresse, Hardware (CPU/RAM/GPU/Storage), VMs, Container, Tags, VLAN, Stromkreis
-- **VLANs & Circuits** – Logische Netzwerk- und Stromkreis-Verwaltung pro Rack
-- **Ansichtsmodi** – Front, Back und freie Kamerasteuerung
-- **Local-first** – Daten liegen als SQLite-Datei bei dir, keine externe Abhängigkeit
+- **3D rack visualization** — Realistic rendering powered by React Three Fiber / Three.js
+- **Multiple racks** — Manage any number of rack projects (e.g. "Basement", "Office")
+- **Component library** — Built-in models for servers, switches, patch panels, UPS, PDU, KVM, and blanks; custom GLTF/GLB models can be uploaded
+- **Drag & drop** — Move components directly in the 3D view by dragging them to a free slot
+- **Collision detection** — Occupied slots are automatically detected and blocked
+- **Cable management** — Port-to-port connections for network and power cables
+- **Component details** — OS, IP address, hardware (CPU/RAM/GPU/Storage), VMs, containers, tags, VLAN, power circuit
+- **VLANs & circuits** — Logical network and power circuit management per rack
+- **View modes** — Front, back, and free camera control
+- **Local-first** — All data is stored as a local SQLite file, no external dependencies
 
 ---
 
 ## Tech Stack
 
-| Bereich | Technologie |
+| Layer | Technology |
 |---|---|
 | Frontend | React 18, TypeScript, Vite |
-| 3D-Engine | React Three Fiber, drei, Three.js |
+| 3D Engine | React Three Fiber, drei, Three.js |
 | State | Zustand, TanStack Query |
 | Styling | Tailwind CSS |
 | Backend | Node.js, Express.js |
-| Datenbank | SQLite (better-sqlite3) |
+| Database | SQLite (better-sqlite3) |
 | Uploads | Multer (GLTF / GLB) |
-| Infra | Docker, Docker Compose, Nginx |
+| Infrastructure | Docker, Docker Compose, Nginx |
 
 ---
 
-## Schnellstart
+## Quick Start
 
-### Voraussetzungen
+### Prerequisites
 
 - [Docker](https://www.docker.com/) & Docker Compose
 
-### Entwicklungsumgebung starten
+### Start the development environment
 
 ```bash
 git clone https://github.com/Louitz/rackvisual.git
@@ -50,105 +50,105 @@ cd rackvisual
 docker-compose up
 ```
 
-| Dienst | URL |
+| Service | URL |
 |---|---|
 | Frontend (Vite) | http://localhost:5173 |
 | API (Express) | http://localhost:3001 |
 
-Die SQLite-Datenbank und hochgeladene Modelle werden automatisch unter `./data/` gespeichert.
+The SQLite database and uploaded models are automatically stored under `./data/`.
 
-### Produktionsbetrieb (Nginx)
+### Production (Nginx)
 
 ```bash
 docker-compose -f docker-compose.prod.yml up
 ```
 
-Die App läuft dann gebündelt unter **http://localhost:80**. Das Nginx-Reverse-Proxy leitet `/api`-Anfragen an den Backend-Container weiter.
+The app runs as a bundled build at **http://localhost:80**. Nginx proxies all `/api` requests to the backend container.
 
 ---
 
-## Projektstruktur
+## Project Structure
 
 ```
 rackvisual/
-├── api/                  # Express.js Backend
+├── api/                  # Express.js backend
 │   └── src/
-│       ├── routes/       # REST-Endpunkte (racks, components, cables, vlans, …)
-│       ├── db/           # SQLite-Verbindung & Schema-Migration
-│       └── seed.ts       # Built-in Komponentenmodelle
+│       ├── routes/       # REST endpoints (racks, components, cables, vlans, …)
+│       ├── db/           # SQLite connection & schema migration
+│       └── seed.ts       # Built-in component models
 │
-├── frontend/             # React + Vite Frontend
+├── frontend/             # React + Vite frontend
 │   └── src/
 │       ├── components/
-│       │   ├── three/    # 3D-Szene (Scene, RackChassis, ComponentMesh, …)
-│       │   └── ui/       # Overlay-Panels (Library, Detail, Toolbar, …)
-│       ├── api/          # React Query Hooks
-│       ├── store/        # Zustand Global State
-│       └── lib/          # Rack-Geometrie & Slot-Berechnungen
+│       │   ├── three/    # 3D scene (Scene, RackChassis, ComponentMesh, …)
+│       │   └── ui/       # Overlay panels (Library, Detail, Toolbar, …)
+│       ├── api/          # React Query hooks
+│       ├── store/        # Zustand global state
+│       └── lib/          # Rack geometry & slot calculations
 │
-├── data/                 # Persistente Daten (SQLite + Modell-Uploads) – gitignored
-├── docs/                 # Designdocs & Specs
+├── data/                 # Persistent data (SQLite + model uploads) — gitignored
+├── docs/                 # Design docs & specs
 ├── docker-compose.yml
 └── docker-compose.prod.yml
 ```
 
 ---
 
-## API-Übersicht
+## API Reference
 
-| Methode | Route | Beschreibung |
+| Method | Route | Description |
 |---|---|---|
-| GET / POST | `/racks` | Racks auflisten / erstellen |
-| PUT / DELETE | `/racks/:id` | Rack umbenennen / löschen |
-| GET / POST | `/racks/:id/components` | Komponenten eines Racks |
-| PUT / DELETE | `/racks/:id/components/:cid` | Komponente bearbeiten / entfernen |
-| GET / POST / DELETE | `/racks/:id/cables` | Kabelverbindungen |
+| GET / POST | `/racks` | List / create racks |
+| PUT / DELETE | `/racks/:id` | Rename / delete a rack |
+| GET / POST | `/racks/:id/components` | List / add components |
+| PUT / DELETE | `/racks/:id/components/:cid` | Update / remove a component |
+| GET / POST / DELETE | `/racks/:id/cables` | Cable connections |
 | GET / POST / DELETE | `/racks/:id/vlans` | VLANs |
-| GET / POST / DELETE | `/racks/:id/circuits` | Stromkreise |
-| GET | `/models` | Komponentenmodelle auflisten |
-| POST | `/models/upload` | Eigenes GLTF/GLB-Modell hochladen |
-| DELETE | `/models/:id` | Eigenes Modell löschen |
-| GET | `/api/health` | Health-Check |
+| GET / POST / DELETE | `/racks/:id/circuits` | Power circuits |
+| GET | `/models` | List component models |
+| POST | `/models/upload` | Upload a custom GLTF/GLB model |
+| DELETE | `/models/:id` | Delete a custom model |
+| GET | `/api/health` | Health check |
 
 ---
 
-## Datenpersistenz
+## Data Persistence
 
-Alle Daten liegen lokal:
+All data is stored locally:
 
 ```
 ./data/
-├── rackvisual.db    # SQLite-Datenbank (WAL-Modus)
-└── models/          # Hochgeladene GLTF/GLB-Dateien
+├── rackvisual.db    # SQLite database (WAL mode)
+└── models/          # Uploaded GLTF/GLB files
 ```
 
-Der `./data/`-Ordner ist per `.gitignore` und Docker-Volume von der Versionsverwaltung ausgenommen.
+The `./data/` directory is excluded from version control via `.gitignore` and mounted as a Docker volume.
 
 ---
 
-## Lokale Entwicklung ohne Docker
+## Local Development without Docker
 
 **API:**
 ```bash
 cd api
 npm install
-npm run dev        # Express startet auf Port 3001
+npm run dev        # Express starts on port 3001
 ```
 
 **Frontend:**
 ```bash
 cd frontend
 npm install
-npm run dev        # Vite startet auf Port 5173
+npm run dev        # Vite starts on port 5173
 ```
 
 **Tests:**
 ```bash
-npm run test       # Vitest (jeweils in api/ und frontend/)
+npm run test       # Vitest (run in both api/ and frontend/)
 ```
 
 ---
 
-## Lizenz
+## License
 
 MIT
