@@ -1,3 +1,5 @@
+import path from 'path';
+import fs from 'fs';
 import { getDb } from './db/connection';
 
 const BUILT_IN_MODELS = [
@@ -511,6 +513,72 @@ const BUILT_IN_MODELS = [
   },
 ];
 
+function getModelsDir(): string {
+  if (process.env.DB_PATH) {
+    return path.join(path.dirname(process.env.DB_PATH), 'models');
+  }
+  return path.join(process.cwd(), 'data', 'models');
+}
+
+const GLB_MAP: Record<string, string> = {
+  // Server
+  '1U Server':             'server_1u.glb',
+  '2U Server':             'server_2u.glb',
+  '4U Server':             'server_4u.glb',
+  'GPU Server 2U':         'gpu_server_2u.glb',
+  'Microserver 1U':        'microserver_1u.glb',
+  // Switch
+  'Switch 24p':            'switch_24port.glb',
+  'Switch 48p':            'switch_48port.glb',
+  'Core Switch 4U':        'core_switch_4u.glb',
+  '10G SFP+ Switch 24p':   'switch_10g_sfp_24p.glb',
+  'PoE Switch 8p':         'poe_switch_8p.glb',
+  // Patch Panel
+  'Patch Panel 24p':       'patch_panel_24port.glb',
+  'Patch Panel 48p':       'patch_panel_48p.glb',
+  'Fiber Panel 12p LC':    'fiber_panel_12p_lc.glb',
+  'Keystone Panel 24p':    'keystone_panel_24p.glb',
+  'Angled Patch Panel 24p':'angled_patch_panel_24p.glb',
+  // UPS
+  'UPS 2U':                'ups_2u.glb',
+  'UPS 1U 1000VA':         'ups_1u_1000va.glb',
+  'UPS 3U 3000VA':         'ups_3u_3000va.glb',
+  'UPS 6U Enterprise':     'ups_6u_enterprise.glb',
+  'Battery Module 2U':     'battery_module_2u.glb',
+  // PDU
+  'PDU 1U':                'pdu_1u.glb',
+  'PDU 1U 16-Outlet':      'pdu_1u_16outlet.glb',
+  'PDU 2U 24-Outlet':      'pdu_2u_24outlet.glb',
+  'Smart PDU 1U Switched': 'pdu_1u_switched.glb',
+  'PDU 1U C19 8-Outlet':   'pdu_1u_c19.glb',
+  // Blank / Cable
+  'Blank Panel 1U':        'blank_panel_1u.glb',
+  'Blank Panel 2U':        'blank_panel_2u.glb',
+  'Cable Management 1U':   'cable_management_1u.glb',
+  // KVM
+  'KVM 1U':                'kvm_1u.glb',
+  'LCD Console 1U':        'lcd_console_1u.glb',
+  'KVM 8-Port IP 1U':      'kvm_8port_ip_1u.glb',
+  'KVM 16-Port 2U':        'kvm_16port_2u.glb',
+  'Console Server 1U':     'console_server_1u.glb',
+  // Storage
+  'NAS 2U 12-Bay':         'nas_2u_12bay.glb',
+  'NAS 4U 24-Bay':         'storage_4u.glb',
+  'SAN 2U 24-Bay':         'san_2u_24bay.glb',
+  'All-Flash Array 2U':    'all_flash_array_2u.glb',
+  'Tape Library 4U':       'tape_library_4u.glb',
+  // Firewall
+  'Firewall 1U':           'firewall_1u.glb',
+  'Firewall 2U':           'firewall_2u.glb',
+  'UTM Appliance 1U':      'utm_appliance_1u.glb',
+  'VPN Gateway 1U':        'vpn_gateway_1u.glb',
+  'IDS/IPS Sensor 1U':     'ids_ips_sensor_1u.glb',
+  // Router
+  'Core Router 2U':        'core_router_2u.glb',
+  'Edge Router 1U':        'router_1u.glb',
+  'SD-WAN Appliance 1U':   'sdwan_appliance_1u.glb',
+};
+
 export function seed() {
   const db = getDb();
 
@@ -519,21 +587,34 @@ export function seed() {
   );
 
   const toInsert = BUILT_IN_MODELS.filter((m) => !existingNames.has(m.name));
-  if (toInsert.length === 0) return;
 
-  const insertModel = db.prepare(
-    'INSERT INTO component_models (name, type, is_builtin, height_u, width, net_ports, power_ports) VALUES (?, ?, 1, ?, ?, ?, ?)'
-  );
-  const insertPort = db.prepare(
-    'INSERT INTO ports (model_id, port_index, port_type, label, face, position_x, position_y) VALUES (?, ?, ?, ?, ?, ?, ?)'
-  );
+  if (toInsert.length > 0) {
+    const insertModel = db.prepare(
+      'INSERT INTO component_models (name, type, is_builtin, height_u, width, net_ports, power_ports) VALUES (?, ?, 1, ?, ?, ?, ?)'
+    );
+    const insertPort = db.prepare(
+      'INSERT INTO ports (model_id, port_index, port_type, label, face, position_x, position_y) VALUES (?, ?, ?, ?, ?, ?, ?)'
+    );
 
-  db.transaction(() => {
-    for (const model of toInsert) {
-      const result = insertModel.run(model.name, model.type, model.height_u, model.width, model.net_ports, model.power_ports);
-      for (const port of model.ports) {
-        insertPort.run(result.lastInsertRowid, port.port_index, port.port_type, port.label, port.face, port.position_x, port.position_y);
+    db.transaction(() => {
+      for (const model of toInsert) {
+        const result = insertModel.run(model.name, model.type, model.height_u, model.width, model.net_ports, model.power_ports);
+        for (const port of model.ports) {
+          insertPort.run(result.lastInsertRowid, port.port_index, port.port_type, port.label, port.face, port.position_x, port.position_y);
+        }
       }
+    })();
+  }
+
+  // Wire up GLB files for all built-in models (runs every startup)
+  const modelsDir = getModelsDir();
+  const updateFilePath = db.prepare(
+    'UPDATE component_models SET file_path = ? WHERE name = ? AND is_builtin = 1 AND file_path IS NOT ?'
+  );
+  for (const [name, glbFile] of Object.entries(GLB_MAP)) {
+    const filePath = path.join(modelsDir, glbFile);
+    if (fs.existsSync(filePath)) {
+      updateFilePath.run(filePath, name, filePath);
     }
-  })();
+  }
 }

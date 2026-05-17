@@ -9,5 +9,9 @@ export default defineConfig({
     proxy: {
       '/api': { target: 'http://api:3001', changeOrigin: true },
     },
+    watch: {
+      usePolling: true,
+      interval: 300,
+    },
   },
 });

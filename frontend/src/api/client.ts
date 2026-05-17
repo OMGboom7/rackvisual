@@ -26,6 +26,15 @@ export function useCreateRack() {
   });
 }
 
+export function useUpdateRack() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<Rack> }) =>
+      fetchJson<Rack>(`/racks/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['racks'] }),
+  });
+}
+
 export function useDeleteRack() {
   const qc = useQueryClient();
   return useMutation({

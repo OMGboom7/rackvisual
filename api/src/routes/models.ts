@@ -46,6 +46,19 @@ router.get('/', (_req: Request, res: Response) => {
   res.json(models);
 });
 
+// GET /:id/file — serve the GLB/GLTF file for a model
+router.get('/:id/file', (req: Request, res: Response) => {
+  const model = getDb()
+    .prepare('SELECT file_path FROM component_models WHERE id = ?')
+    .get(req.params.id) as { file_path: string | null } | undefined;
+
+  if (!model) return res.status(404).json({ error: 'Model not found' });
+  if (!model.file_path) return res.status(404).json({ error: 'No file for this model' });
+  if (!fs.existsSync(model.file_path)) return res.status(404).json({ error: 'File not found on disk' });
+
+  res.sendFile(model.file_path);
+});
+
 // GET /:id/ports — list ports for a model
 router.get('/:id/ports', (req: Request, res: Response) => {
   const model = getDb()

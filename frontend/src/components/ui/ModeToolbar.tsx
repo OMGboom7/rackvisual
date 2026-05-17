@@ -2,10 +2,10 @@ import { useStore } from '../../store/useStore';
 import type { AppMode } from '../../types';
 
 const MODES: { mode: AppMode; label: string; icon: string }[] = [
-  { mode: 'select', label: 'Select', icon: '🖱' },
-  { mode: 'move', label: 'Move', icon: '✥' },
-  { mode: 'cable', label: 'Cable', icon: '🔌' },
-  { mode: 'delete', label: 'Delete', icon: '🗑' },
+  { mode: 'select', label: 'Select', icon: 'S' },
+  { mode: 'move', label: 'Move', icon: 'M' },
+  { mode: 'cable', label: 'Cable', icon: 'C' },
+  { mode: 'delete', label: 'Delete', icon: 'D' },
 ];
 
 const FACES = [
