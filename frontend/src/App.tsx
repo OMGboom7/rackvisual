@@ -1,4 +1,5 @@
 import { Component, ReactNode } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import Scene from './components/three/Scene';
 import RackSwitcher from './components/ui/RackSwitcher';
 import LibraryPanel from './components/ui/LibraryPanel';
@@ -33,17 +34,26 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { error: Error
   }
 }
 
+function RackVisualApp() {
+  return (
+    <div className="relative w-screen h-screen overflow-hidden bg-rack-bg">
+      <Scene />
+      <RackSwitcher />
+      <LibraryPanel />
+      <ModeToolbar />
+      <DetailPanel />
+      <ManagementPanel />
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <AppErrorBoundary>
-      <div className="relative w-screen h-screen overflow-hidden bg-rack-bg">
-        <Scene />
-        <RackSwitcher />
-        <LibraryPanel />
-        <ModeToolbar />
-        <DetailPanel />
-        <ManagementPanel />
-      </div>
+      <Routes>
+        <Route path="/" element={<RackVisualApp />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </AppErrorBoundary>
   );
 }

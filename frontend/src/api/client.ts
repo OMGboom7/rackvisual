@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Rack, RackComponent, ComponentModel, Port, Cable, Vlan, Circuit } from '../types';
 
-const BASE = '/api';
+const BASE = '/rack3d/api';
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(BASE + url, {
@@ -102,7 +102,7 @@ export function useUploadModel() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (formData: FormData) => {
-      const res = await fetch('/api/models/upload', { method: 'POST', body: formData });
+      const res = await fetch('/rack3d/api/models/upload', { method: 'POST', body: formData });
       if (!res.ok) throw new Error(await res.text());
       return res.json() as Promise<ComponentModel>;
     },
