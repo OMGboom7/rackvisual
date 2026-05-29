@@ -6,6 +6,8 @@ import LibraryPanel from './components/ui/LibraryPanel';
 import ModeToolbar from './components/ui/ModeToolbar';
 import DetailPanel from './components/ui/DetailPanel';
 import ManagementPanel from './components/ui/ManagementPanel';
+import BottomSheet from './components/ui/BottomSheet';
+import { useIsMobile } from './hooks/useIsMobile';
 
 class AppErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   state = { error: null };
@@ -35,6 +37,25 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { error: Error
 }
 
 function RackVisualApp() {
+  const isMobile = useIsMobile();
+
+  if (isMobile) {
+    return (
+      <div className="relative w-screen h-screen overflow-hidden bg-rack-bg">
+        <Scene />
+        <RackSwitcher />
+        <ModeToolbar />
+        <BottomSheet
+          tabs={[
+            { key: 'library', label: '组件', icon: '📦', content: <LibraryPanel /> },
+            { key: 'detail', label: '详情', icon: '📋', content: <DetailPanel /> },
+            { key: 'manage', label: '管理', icon: '⚙️', content: <ManagementPanel /> },
+          ]}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="relative w-screen h-screen overflow-hidden bg-rack-bg">
       <Scene />

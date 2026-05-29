@@ -2,41 +2,46 @@ import { useStore } from '../../store/useStore';
 import type { AppMode } from '../../types';
 
 const MODES: { mode: AppMode; label: string; icon: string }[] = [
-  { mode: 'select', label: 'Select', icon: 'S' },
-  { mode: 'move', label: 'Move', icon: 'M' },
-  { mode: 'cable', label: 'Cable', icon: 'C' },
-  { mode: 'delete', label: 'Delete', icon: 'D' },
+  { mode: 'select', label: '选择', icon: 'S' },
+  { mode: 'move', label: '移动', icon: 'M' },
+  { mode: 'cable', label: '线缆', icon: 'C' },
+  { mode: 'delete', label: '删除', icon: 'D' },
 ];
 
 const FACES = [
-  { key: 'front' as const, label: 'Front' },
-  { key: 'back' as const, label: 'Back' },
-  { key: 'free' as const, label: 'Free' },
+  { key: 'front' as const, label: '前' },
+  { key: 'back' as const, label: '后' },
+  { key: 'free' as const, label: '自由' },
 ];
 
 export default function ModeToolbar() {
   const { mode, setMode, showFace, setShowFace } = useStore();
   return (
-    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 bg-rack-surface/85 backdrop-blur border border-rack-border rounded-full px-3 py-1.5">
+    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 bg-rack-surface/85 backdrop-blur border border-rack-border rounded-full px-3 py-1.5
+      md:px-3 md:py-1.5 md:gap-1
+      px-2 py-2 gap-0.5">
       {MODES.map((m) => (
         <button
           key={m.mode}
           onClick={() => setMode(m.mode)}
-          className={`text-xs px-3 py-1 rounded-full transition-colors flex items-center gap-1 ${
-            mode === m.mode ? 'bg-blue-900/60 border border-blue-600 text-blue-300' : 'text-rack-muted hover:text-rack-text'
-          }`}
+          className={`transition-colors rounded-full flex items-center justify-center gap-1
+            md:text-xs md:px-3 md:py-1
+            text-sm px-4 py-1.5 min-w-[40px]
+            ${mode === m.mode ? 'bg-blue-900/60 border border-blue-600 text-blue-300' : 'text-rack-muted hover:text-rack-text'}`}
         >
-          {m.icon} {m.label}
+          <span className="md:hidden">{m.icon}</span>
+          <span className="hidden md:inline">{m.icon}</span>
         </button>
       ))}
-      <div className="w-px h-4 bg-rack-border mx-1" />
+      <div className="w-px h-5 bg-rack-border mx-1" />
       {FACES.map((f) => (
         <button
           key={f.key}
           onClick={() => setShowFace(f.key)}
-          className={`text-xs px-2 py-1 rounded-full transition-colors ${
-            showFace === f.key ? 'text-purple-300 border border-purple-600 bg-purple-900/40' : 'text-rack-muted hover:text-rack-text'
-          }`}
+          className={`transition-colors rounded-full
+            md:text-xs md:px-2 md:py-1
+            text-sm px-3 py-1.5 min-w-[36px]
+            ${showFace === f.key ? 'text-purple-300 border border-purple-600 bg-purple-900/40' : 'text-rack-muted hover:text-rack-text'}`}
         >
           {f.label}
         </button>
