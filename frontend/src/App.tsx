@@ -38,7 +38,6 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, { error: Error
 
 function RackVisualApp() {
   const isMobile = useIsMobile();
-
   if (isMobile) {
     return (
       <div className="relative w-screen h-screen overflow-hidden bg-rack-bg">
