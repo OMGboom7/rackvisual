@@ -26,7 +26,14 @@ export default function DetailPanel() {
   const comp = components?.find((c) => c.id === selectedComponentId);
   const { data: ports } = useModelPorts(comp?.model_id ?? null);
 
-  if (!comp || !selectedRackId) return null;
+  if (!comp || !selectedRackId) {
+    return (
+      <div className="text-center py-8 text-rack-muted">
+        <div className="text-lg mb-2">📋</div>
+        <div>请在场景中点击组件查看详情</div>
+      </div>
+    );
+  }
 
   const startEdit = () => {
     setForm({ ...comp });
@@ -72,7 +79,7 @@ export default function DetailPanel() {
   ];
 
   return (
-    <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-60 bg-rack-surface/90 backdrop-blur border border-blue-600/60 rounded-lg p-3 text-xs">
+    <div className="md:absolute md:right-3 md:top-1/2 md:-translate-y-1/2 z-10 md:w-60 bg-rack-surface/90 backdrop-blur border border-blue-600/60 rounded-lg p-3 text-xs">
       {/* Header */}
       <div className="flex items-center justify-between mb-2 border-b border-rack-border pb-1.5">
         <span className="text-blue-300 font-medium truncate">{comp.name}</span>

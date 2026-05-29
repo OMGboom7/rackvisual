@@ -77,7 +77,7 @@ export default function LibraryPanel() {
   };
 
   return (
-    <div className={`absolute left-3 top-1/2 -translate-y-1/2 z-10 flex flex-col bg-rack-surface/85 backdrop-blur border border-rack-border rounded-lg transition-all ${expanded ? 'w-52' : 'w-12'}`}>
+    <div className={`md:absolute md:left-3 md:top-1/2 md:-translate-y-1/2 z-10 flex flex-col bg-rack-surface/85 backdrop-blur border border-rack-border rounded-lg transition-all ${expanded ? 'md:w-52 w-full' : 'w-12'}`}>
       <button
         onClick={() => setExpanded(!expanded)}
         className="p-2 text-rack-muted hover:text-rack-text text-center text-xs border-b border-rack-border"

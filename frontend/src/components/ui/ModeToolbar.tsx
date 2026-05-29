@@ -17,9 +17,9 @@ const FACES = [
 export default function ModeToolbar() {
   const { mode, setMode, showFace, setShowFace } = useStore();
   return (
-    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 bg-rack-surface/85 backdrop-blur border border-rack-border rounded-full px-3 py-1.5
-      md:px-3 md:py-1.5 md:gap-1
-      px-2 py-2 gap-0.5">
+    <div className="absolute left-1/2 -translate-x-1/2 z-30 flex items-center gap-1 bg-rack-surface/85 backdrop-blur border border-rack-border rounded-full
+      md:bottom-4 md:px-3 md:py-1.5 md:gap-1
+      bottom-20 px-2 py-2 gap-0.5">
       {MODES.map((m) => (
         <button
           key={m.mode}

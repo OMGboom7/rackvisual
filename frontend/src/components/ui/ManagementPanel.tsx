@@ -76,7 +76,7 @@ export default function ManagementPanel() {
       {/* Toggle Button */}
       <button
         onClick={() => setOpen(!open)}
-        className="absolute top-3 right-3 z-10 bg-rack-surface/85 backdrop-blur border border-rack-border rounded-full px-3 py-1.5 text-xs text-rack-muted hover:text-rack-text"
+        className="md:absolute md:top-3 md:right-3 z-10 bg-rack-surface/85 backdrop-blur border border-rack-border rounded-full px-3 py-1.5 text-xs text-rack-muted hover:text-rack-text"
         title="VLANs & Stromkreise verwalten"
       >
         Netz
@@ -84,7 +84,7 @@ export default function ManagementPanel() {
 
       {/* Panel */}
       {open && (
-        <div className="absolute top-12 right-3 z-20 w-64 bg-rack-surface/95 backdrop-blur border border-rack-border rounded-lg p-3 text-xs">
+        <div className="md:absolute md:top-12 md:right-3 z-20 md:w-64 w-full bg-rack-surface/95 backdrop-blur border border-rack-border rounded-lg p-3 text-xs">
           <div className="flex items-center justify-between mb-2">
             <span className="text-rack-text font-medium">VLANs & Stromkreise</span>
             <button onClick={() => setOpen(false)} className="text-rack-muted hover:text-rack-text">×</button>
