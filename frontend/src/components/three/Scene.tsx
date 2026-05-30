@@ -128,6 +128,30 @@ function DragPlane({ rack, components }: { rack: Rack; components: RackComponent
   );
 }
 
+// ─── 前/后 方向标注组件 ───────────────────────────────────────────────────────
+
+function DirectionLabel({ position, text, color }: { position: [number, number, number]; text: string; color: string }) {
+  const ref = useRef<any>(null);
+  useEffect(() => {
+    if (!ref.current) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d')!;
+    ctx.clearRect(0, 0, 128, 64);
+    ctx.fillStyle = color;
+    ctx.font = 'bold 40px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, 64, 36);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
+    ref.current.material = new THREE.SpriteMaterial({ map: texture, transparent: true, depthTest: false });
+    ref.current.scale.set(0.6, 0.3, 1);
+  }, [text, color]);
+  return <sprite ref={ref} position={position} />;
+}
+
 // ─── Main scene ───────────────────────────────────────────────────────────────
 
 export default function Scene() {
@@ -177,6 +201,10 @@ export default function Scene() {
           fadeDistance={12}
           infiniteGrid
         />
+
+        {/* 前/后 方向标注 - 使用 Canvas Sprite */}
+        <DirectionLabel position={[-1.5, -0.75, -1.5]} text="前" color="#4488ff" />
+        <DirectionLabel position={[-1.5, -0.75, 1.5]} text="后" color="#ff6644" />
       </Suspense>
 
       <OrbitControls makeDefault enableDamping dampingFactor={0.05} />
