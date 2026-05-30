@@ -18,7 +18,7 @@ export default function ModeToolbar() {
   const { mode, setMode, showFace, setShowFace } = useStore();
   return (
     <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1 bg-rack-surface/85 backdrop-blur border border-rack-border rounded-full
-      md:bottom-4 md:px-3 md:py-1.5 md:gap-1 md:z-10
+      md:bottom-4 md:top-auto md:px-3 md:py-1.5 md:gap-1 md:z-10
       top-16 px-2 py-2 gap-0.5 z-30">
       {MODES.map((m) => (
         <button
@@ -29,8 +29,7 @@ export default function ModeToolbar() {
             text-sm px-4 py-1.5 min-w-[40px]
             ${mode === m.mode ? 'bg-blue-900/60 border border-blue-600 text-blue-300' : 'text-rack-muted hover:text-rack-text'}`}
         >
-          <span className="md:hidden">{m.icon}</span>
-          <span className="hidden md:inline">{m.icon}</span>
+          <span>{m.label}</span>
         </button>
       ))}
       <div className="w-px h-5 bg-rack-border mx-1" />
