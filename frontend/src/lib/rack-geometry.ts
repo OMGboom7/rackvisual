@@ -16,10 +16,10 @@ export function getRackHeight(heightU: number) {
 }
 
 // Compute Y center position of a component within the rack interior
-// Slot 1 = topmost slot; heightU accounts for multi-U components
+// Slot 1 = bottommost slot (standard rack convention); heightU accounts for multi-U components
 export function slotY(slot: number, totalU: number, heightU = 1): number {
   const interiorHeight = totalU * U_HEIGHT;
-  return (interiorHeight / 2) - (slot - 1) * U_HEIGHT - (heightU * U_HEIGHT) / 2;
+  return -(interiorHeight / 2) + (slot - 1) * U_HEIGHT + (heightU * U_HEIGHT) / 2;
 }
 
 // Build a rack chassis as a THREE.Group (posts + rails + mounting strips)
@@ -66,12 +66,12 @@ export function buildRackChassis(width: '10"' | '19"', heightU: number): THREE.G
   return group;
 }
 
-// Inverse of slotY for 1U: maps world-space Y → 1-indexed slot number (1 = top).
-// Returns the slot where the TOP of a heightU-tall component should land.
+// Inverse of slotY for 1U: maps world-space Y → 1-indexed slot number (1 = bottom).
+// Returns the slot where the bottom of a heightU-tall component should land.
 // Clamps so the component stays within the rack (slot + heightU - 1 <= totalU).
 export function worldYToSlot(worldY: number, totalU: number, heightU = 1): number {
   const interiorHeight = totalU * U_HEIGHT;
-  const fromTop = interiorHeight / 2 - worldY;
-  const slot = Math.floor(fromTop / U_HEIGHT) + 1;
+  const fromBottom = worldY + interiorHeight / 2;
+  const slot = Math.floor(fromBottom / U_HEIGHT) + 1;
   return Math.max(1, Math.min(slot, totalU - heightU + 1));
 }

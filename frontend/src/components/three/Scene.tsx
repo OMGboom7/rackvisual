@@ -153,7 +153,7 @@ export default function Scene() {
       <Suspense fallback={null}>
         <Environment preset="city" />
         {rack && (
-          <group>
+          <group position={[0, getRackHeight(rack.height_u) / 2 - 0.8, 0]}>
             <RackChassis rack={rack} />
             <SlotDropZones rack={rack} />
             <DragPlane rack={rack} components={components ?? []} />

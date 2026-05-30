@@ -3,7 +3,7 @@ import { useStore } from '../../store/useStore';
 import { useVlans, useCircuits } from '../../api/client';
 import { useQueryClient, useMutation } from '@tanstack/react-query';
 
-const BASE = '/api';
+const BASE = '/rack3d/api';
 async function apiDelete(url: string) {
   const res = await fetch(BASE + url, { method: 'DELETE' });
   if (res.status !== 204 && !res.ok) throw new Error(await res.text());
@@ -22,6 +22,7 @@ interface Vlan { id: number; rack_id: number; vlan_id: number; name: string; col
 interface Circuit { id: number; rack_id: number; name: string; color: string; ampere: number | null; }
 
 export default function ManagementPanel() {
+  const [error, setError] = useState<string | null>(null);
   const { selectedRackId } = useStore();
   const { data: vlans } = useVlans(selectedRackId);
   const { data: circuits } = useCircuits(selectedRackId);
@@ -46,12 +47,15 @@ export default function ManagementPanel() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['vlans', selectedRackId] });
       setVlanId(''); setVlanName('');
+      setError(null);
     },
+    onError: (err) => setError(String(err)),
   });
 
   const deleteVlan = useMutation({
     mutationFn: (id: number) => apiDelete(`/racks/${selectedRackId}/vlans/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['vlans', selectedRackId] }),
+    onError: (err) => setError(String(err)),
   });
 
   const addCircuit = useMutation({
@@ -61,12 +65,15 @@ export default function ManagementPanel() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['circuits', selectedRackId] });
       setCircName(''); setCircAmpere('');
+      setError(null);
     },
+    onError: (err) => setError(String(err)),
   });
 
   const deleteCircuit = useMutation({
     mutationFn: (id: number) => apiDelete(`/racks/${selectedRackId}/circuits/${id}`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['circuits', selectedRackId] }),
+    onError: (err) => setError(String(err)),
   });
 
   if (!selectedRackId) return null;
@@ -77,16 +84,16 @@ export default function ManagementPanel() {
       <button
         onClick={() => setOpen(!open)}
         className="md:absolute md:top-3 md:right-3 z-10 bg-rack-surface/85 backdrop-blur border border-rack-border rounded-full px-3 py-1.5 text-xs text-rack-muted hover:text-rack-text"
-        title="VLANs & Stromkreise verwalten"
+        title="管理 VLAN 与电路"
       >
-        Netz
+        网络
       </button>
 
       {/* Panel */}
       {open && (
         <div className="md:absolute md:top-12 md:right-3 z-20 md:w-64 w-full bg-rack-surface/95 backdrop-blur border border-rack-border rounded-lg p-3 text-xs">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-rack-text font-medium">VLANs & Stromkreise</span>
+            <span className="text-rack-text font-medium">VLAN 与电路</span>
             <button onClick={() => setOpen(false)} className="text-rack-muted hover:text-rack-text">×</button>
           </div>
 
@@ -100,7 +107,7 @@ export default function ManagementPanel() {
                   tab === t ? 'bg-blue-900/60 text-blue-300 border border-blue-600' : 'text-rack-muted hover:text-rack-text'
                 }`}
               >
-                {t === 'vlans' ? `VLANs (${vlans?.length ?? 0})` : `Stromkreise (${circuits?.length ?? 0})`}
+                {t === 'vlans' ? `VLAN (${vlans?.length ?? 0})` : `电路 (${circuits?.length ?? 0})`}
               </button>
             ))}
           </div>
@@ -132,8 +139,9 @@ export default function ManagementPanel() {
                   <input type="color" value={vlanColor} onChange={(e) => setVlanColor(e.target.value)}
                     className="w-7 h-6 rounded cursor-pointer bg-transparent border border-rack-border" />
                 </div>
+                {error && <div className="text-red-400 text-xs">{error}</div>}
                 <button type="submit" className="bg-blue-900/50 hover:bg-blue-800/60 border border-blue-700/40 rounded px-2 py-1 text-blue-300">
-                  + VLAN hinzufügen
+                  + 添加 VLAN
                 </button>
               </form>
             </div>
@@ -166,8 +174,9 @@ export default function ManagementPanel() {
                   <input type="color" value={circColor} onChange={(e) => setCircColor(e.target.value)}
                     className="w-7 h-6 rounded cursor-pointer bg-transparent border border-rack-border" />
                 </div>
+                {error && <div className="text-red-400 text-xs">{error}</div>}
                 <button type="submit" className="bg-red-900/50 hover:bg-red-800/60 border border-red-700/40 rounded px-2 py-1 text-red-300">
-                  + Stromkreis hinzufügen
+                  + 添加电路
                 </button>
               </form>
             </div>

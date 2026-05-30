@@ -503,7 +503,7 @@ function ProceduralComponent({ component, rack, model }: Props & { model: any })
 // ─── GLTF component ───────────────────────────────────────────────────────────
 
 function GltfComponent({ component, rack, modelId }: Props & { modelId: number }) {
-  const gltf = useLoader(GLTFLoader, `/api/models/${modelId}/file`);
+  const gltf = useLoader(GLTFLoader, `/rack3d/api/models/${modelId}/file`);
   const [hovered, setHovered] = useState(false);
   const selectedComponentId = useStore((s) => s.selectedComponentId);
   const setSelectedComponentId = useStore((s) => s.setSelectedComponentId);
